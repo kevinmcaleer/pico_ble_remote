@@ -13,7 +13,7 @@ import aioble
 import bluetooth
 
 from micropython import const
-# from btzero import _BUTTON, _decode_message
+
 
 SERVICE_UUID = bluetooth.UUID(0x1815)
 BUTTON_UUID = bluetooth.UUID(0x0000)
