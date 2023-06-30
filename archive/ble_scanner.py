@@ -1,10 +1,8 @@
 # Kevin McAleer
-# 2023-06-28
+# June 2023
 # Bluetooth cores specification versio 5.4 (0x0D)
 # Bluetooth scanner
 
-import sys
-import time
 import struct
 import machine
 

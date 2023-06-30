@@ -1,37 +1,29 @@
-import sys
+# June 2023
+# Bluetooth cores specification versio 5.4 (0x0D)
+# Bluetooth Remote Control
+# Kevin McAleer
+# KevsRobot.com
 
-sys.path.append("")
-
-from micropython import const
-
-import uasyncio as asyncio
 import aioble
 import bluetooth
 import machine
-import random
-import struct
+import uasyncio as asyncio
 
-# org.bluetooth.service.environmental_sensing
+# Bluetooth UUIDS can be found online at https://www.bluetooth.com/specifications/gatt/services/
+
 _REMOTE_UUID = bluetooth.UUID(0x1848)
 _ENV_SENSE_UUID = bluetooth.UUID(0x1800) 
-# org.bluetooth.characteristic.temperature
-_ENV_SENSE_TEMP_UUID = bluetooth.UUID(0x2A6E)
-#_ENV_SENSE_TEMP_UUID = bluetooth.UUID(0x1800)
+_REMOTE_CHARACTERISTICS_UUID = bluetooth.UUID(0x2A6E)
 
 led = machine.Pin("LED", machine.Pin.OUT)
 
-# Helper to decode the temperature characteristic encoding (sint16, hundredths of a degree).
-def _decode_temperature(data):
-    return struct.unpack("<h", data)[0] / 100
-
-
-async def find_temp_sensor():
+async def find_remote():
     # Scan for 5 seconds, in active mode, with very low interval/window (to
     # maximise detection rate).
     async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as scanner:
         async for result in scanner:
-#             if not result.name() == None: print(result.name())
-            # See if it matches our name and the environmental sensing service.
+
+            # See if it matches our name
             if result.name() == "KevsRobots":
                 print("Found KevsRobots")
                 for item in result.services():
@@ -52,7 +44,7 @@ async def blink_task():
 
 async def main():
     
-    device = await find_temp_sensor()
+    device = await find_remote()
     if not device:
         print("Robot Remote not found")
         return
@@ -68,16 +60,16 @@ async def main():
     async with connection:
         print("Connected")
         try:
-            temp_service = await connection.service(_REMOTE_UUID)
-            print(temp_service)
-            temp_characteristic = await temp_service.characteristic(_ENV_SENSE_TEMP_UUID)
-            print(temp_characteristic)
+            robot_service = await connection.service(_REMOTE_UUID)
+            print(robot_service)
+            control_characteristic = await robot_service.characteristic(_REMOTE_CHARACTERISTICS_UUID)
+            print(control_characteristic)
         except asyncio.TimeoutError:
             print("Timeout discovering services/characteristics")
             return
         while True:
-            if temp_characteristic != None:
-                temp_deg_c = await temp_characteristic.read()
+            if control_characteristic != None:
+                temp_deg_c = await control_characteristic.read()
                 print(f"Command: {temp_deg_c}")
             else:
                 print('no characteristic')
