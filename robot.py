@@ -59,20 +59,28 @@ async def main():
         
     async with connection:
         print("Connected")
-        try:
-            robot_service = await connection.service(_REMOTE_UUID)
-            print(robot_service)
-            control_characteristic = await robot_service.characteristic(_REMOTE_CHARACTERISTICS_UUID)
-            print(control_characteristic)
-        except asyncio.TimeoutError:
-            print("Timeout discovering services/characteristics")
-            return
         while True:
-            if control_characteristic != None:
-                temp_deg_c = await control_characteristic.read()
-                print(f"Command: {temp_deg_c}")
-            else:
-                print('no characteristic')
-            await asyncio.sleep_ms(1000)
-
-asyncio.run(main())
+            try:
+                robot_service = await connection.service(_REMOTE_UUID)
+                print(robot_service)
+                control_characteristic = await robot_service.characteristic(_REMOTE_CHARACTERISTICS_UUID)
+                print(control_characteristic)
+            except asyncio.TimeoutError:
+                print("Timeout discovering services/characteristics")
+                return
+            while True:
+                if control_characteristic != None:
+                    try:
+                        temp_deg_c = await control_characteristic.read()
+                        print(f"Command: {temp_deg_c}")
+                    except TypeError:
+                        print(f'something went wrong; remote disconnected?')
+                        return
+                    except asyncio.TimeoutError:
+                        print(f'something went wrong; timeout error?')
+                        return
+                else:
+                    print('no characteristic')
+                await asyncio.sleep_ms(1000)
+while True:
+    asyncio.run(main())
