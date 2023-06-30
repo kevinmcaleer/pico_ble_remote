@@ -60,11 +60,6 @@ aioble.register_services(remote_service, device_info)
 
 connected = False
 
-def _encode_message(character:str):
-    """ Encode a message to send to the remote device """
-    return struct.pack("<h", ord(character))
-
-
 async def remote_task():
     """ Send the event to the connected device """
     while True:
@@ -81,9 +76,8 @@ async def remote_task():
             print('Button Y pressed')
             button_characteristic.write(b"y")
         else:
-#             print("no buttons")
             button_characteristic.write(b"!")
-        await asyncio.sleep_ms(100)
+        await asyncio.sleep_ms(10)
 
 # Serially wait for connections. Don't advertise while a central is
 # connected.    
@@ -107,7 +101,7 @@ async def blink_task():
     while True:
         led.value(toggle)
         toggle = not toggle
-        print(f'blink {toggle}, connected: {connected}')
+        # print(f'blink {toggle}, connected: {connected}')
         if connected:
             blink = 1000
         else:
