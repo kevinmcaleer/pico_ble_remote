@@ -11,7 +11,29 @@ import machine
 import uasyncio as asyncio
 from micropython import const
 from pimoroni import Button
+from picographics import PicoGraphics, DISPLAY_PICO_DISPLAY_2 as DISPLAY
+import jpegdec
+import gc
+from gui import draw_logo
 
+gc.collect()
+
+display = PicoGraphics(DISPLAY)
+WIDTH, HEIGHT = display.get_bounds()
+white = display.create_pen(255,255,255)
+black = display.create_pen(0,0,0)
+blue = display.create_pen(0,0,255)
+display.set_pen(white)
+display.clear()
+
+text = "BurgerBot Online..."
+display.set_pen(blue)
+draw_logo(1,1,display)
+display.update()
+display.set_pen(black)
+center = display.measure_text(text, 1, 0)
+display.text(text, WIDTH//2 - center, HEIGHT//2)
+display.update()
 def uid():
     """ Return the unique id of the device as a string """
     return "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}".format(
@@ -42,8 +64,6 @@ ADV_INTERVAL_MS = 250_000
 
 device_info = aioble.Service(_ENV_SENSE_UUID)
 
-connection = None
-
 # Create characteristics for device info
 aioble.Characteristic(device_info, bluetooth.UUID(MANUFACTURER_ID), read=True, initial="KevsRobotsRemote")
 aioble.Characteristic(device_info, bluetooth.UUID(MODEL_NUMBER_ID), read=True, initial="1.0")
@@ -61,44 +81,32 @@ print('registering services')
 aioble.register_services(remote_service, device_info)
 
 connected = False
+alive = False
 
 async def remote_task():
     """ Send the event to the connected device """
-
-   
-    while True:
-        if not connected:
-            print('not connected')
-            await asyncio.sleep_ms(1000)
-            continue
+    while True and alive:
         if button_a.read():
-            print(f'Button A pressed, connection is: {connection}')
+            print('Button A pressed')
             button_characteristic.write(b"a")   
-            button_characteristic.notify(connection,b"a")
         elif button_b.read():
             print('Button B pressed')
-            button_characteristic.write(b"b")
-            button_characteristic.notify(connection,b"b")
+            button_characteristic.write(b"b")   
         elif button_x.read():
             print('Button X pressed')
-            button_characteristic.write(b"x")
-            button_characteristic.notify(connection,b"x")
+            button_characteristic.write(b"x")   
         elif button_y.read():
             print('Button Y pressed')
             button_characteristic.write(b"y")
-            button_characteristic.notify(connection,b"x")
         else:
             button_characteristic.write(b"!")
         await asyncio.sleep_ms(10)
-            
-#         await asyncio.sleep_ms(1)
 
 # Serially wait for connections. Don't advertise while a central is
 # connected.    
 async def peripheral_task():
-    print('peripheral task started')
-    global connected, connection
-    while True:
+    global connected, alive
+    while True and alive:
         connected = False
         async with await aioble.advertise(
             ADV_INTERVAL_MS, 
@@ -110,24 +118,25 @@ async def peripheral_task():
             connected = True
             print(f"connected: {connected}")
             await connection.disconnected()
-            print(f'disconnected')
-        
+            alive = False
+            return
+    print('robot disconnected')
 
 async def blink_task():
-    print('blink task started')
     toggle = True
-    while True:
+    while True and alive:
         led.value(toggle)
         toggle = not toggle
-#         print(f'blink {toggle}, connected: {connected}')
-        blink = 1000
+        # print(f'blink {toggle}, connected: {connected}')
         if connected:
             blink = 1000
         else:
             blink = 250
         await asyncio.sleep_ms(blink)
+    led.off()
         
 async def main():
+    tasks = []
     tasks = [
         asyncio.create_task(peripheral_task()),
         asyncio.create_task(blink_task()),
@@ -135,4 +144,5 @@ async def main():
     ]
     await asyncio.gather(*tasks)
 
-asyncio.run(main())
+while True:
+    asyncio.run(main())
