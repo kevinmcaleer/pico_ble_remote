@@ -2,7 +2,6 @@
 # 2023-06-28
 # Bluetooth cores specification versio 5.4 (0x0D)
 
-import struct
 import sys
 
 import aioble
@@ -65,7 +64,6 @@ connected = False
 async def remote_task():
     """ Send the event to the connected device """
 
-   
     while True:
         if not connected:
             print('not connected')
@@ -91,8 +89,6 @@ async def remote_task():
             button_characteristic.write(b"!")
         await asyncio.sleep_ms(10)
             
-#         await asyncio.sleep_ms(1)
-
 # Serially wait for connections. Don't advertise while a central is
 # connected.    
 async def peripheral_task():
@@ -119,7 +115,6 @@ async def blink_task():
     while True:
         led.value(toggle)
         toggle = not toggle
-#         print(f'blink {toggle}, connected: {connected}')
         blink = 1000
         if connected:
             blink = 1000
