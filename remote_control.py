@@ -25,15 +25,16 @@ button_y = Button(15)
 
 led = machine.Pin("LED", machine.Pin.OUT)
 
+_DEVICE_INFO_UUID = bluetooth.UUID(0x180A) # Device Information
 _GENERIC = bluetooth.UUID(0x1848)
 _BUTTON_UUID = bluetooth.UUID(0x2A6E)
-_ROBOT = bluetooth.UUID(0x180A)
+_ROBOT = bluetooth.UUID(0x1800)
                               
 _BLE_APPEARANCE_GENERIC_REMOTE_CONTROL = const(384)
 
 ADV_INTERVAL_MS = 250_000
 
-device_info = aioble.Service(_ROBOT)
+device_info = aioble.Service(_DEVICE_INFO_UUID)
                               
 connection = None
 
@@ -47,8 +48,7 @@ aioble.Characteristic(device_info, bluetooth.UUID(BLE_VERSION_ID), read=True, in
 remote_service = aioble.Service(_GENERIC)
 
 button_characteristic = aioble.Characteristic(
-    remote_service, _BUTTON_UUID, notify=True, read=True
-)
+    remote_service, _BUTTON_UUID, read=True, notify=True)
 
 print("Registering services")
 
@@ -82,7 +82,7 @@ async def remote_task():
             button_characteristic.notify(connection, b"y")
         else:
             button_characteristic.write(b"!")
-            button_characteristic.notify(connection, b"!")
+#             button_characteristic.notify(connection, b"!")
         await asyncio.sleep_ms(10)
 
 async def peripheral_task():
@@ -94,7 +94,7 @@ async def peripheral_task():
             ADV_INTERVAL_MS,
             name="KevsRobots",
             appearance=_BLE_APPEARANCE_GENERIC_REMOTE_CONTROL,
-            services=[_GENERIC]
+            services=[_ROBOT]
         ) as connection:
             print("Connection from, ", connection.device)
             connected = True
@@ -117,8 +117,8 @@ async def blink_task():
 
 async def main():
     tasks = [
-        asyncio.create_task(remote_task()),
         asyncio.create_task(peripheral_task()),
+        asyncio.create_task(remote_task()),
         asyncio.create_task(blink_task()),
     ]
     await asyncio.gather(*tasks)
