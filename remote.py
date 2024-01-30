@@ -63,12 +63,11 @@ connected = False
 
 async def remote_task():
     """ Send the event to the connected device """
-
     while True:
-        if not connected:
-            print('not connected')
-            await asyncio.sleep_ms(1000)
-            continue
+#        if not connected:
+#            print('not connected')
+#            await asyncio.sleep_ms(1000)
+#            continue
         if button_a.read():
             print(f'Button A pressed, connection is: {connection}')
             button_characteristic.write(b"a")   
@@ -93,7 +92,7 @@ async def remote_task():
 # connected.    
 async def peripheral_task():
     print('peripheral task started')
-    global connected, connection
+    global connected, connection, alive
     while True:
         connected = False
         async with await aioble.advertise(
@@ -103,31 +102,47 @@ async def peripheral_task():
             services=[_ENV_SENSE_TEMP_UUID]
         ) as connection:
             print("Connection from", connection.device)
+            alive = True
             connected = True
             print(f"connected: {connected}")
-            await connection.disconnected()
-            print(f'disconnected')
+#            await connection.disconnected()
+#            print(f'disconnected')
+"""This next block is added to prevent error when the central is turned off so that the remote will start searching for it again"""
+            while True:
+                try:
+                    await remote_task()
+                except:
+                    connection.disconnected()
+                    print('disconnected')
+                    alive = False
+                    connected = False
+                    return
+                continue
         
 
 async def blink_task():
-    print('blink task started')
+# Modified so that when disconnected (not alive), the blink task will end and the whole thing restarts
     toggle = True
-    while True:
+    while True and not alive:
         led.value(toggle)
         toggle = not toggle
         blink = 1000
-        if connected:
-            blink = 1000
-        else:
-            blink = 250
+        await asyncio.sleep_ms(blink)
+    print('blink task started')
+    while True and alive:
+        led.value(toggle)
+        toggle = not toggle
+        blink = 250
         await asyncio.sleep_ms(blink)
         
 async def main():
     tasks = [
         asyncio.create_task(peripheral_task()),
         asyncio.create_task(blink_task()),
-        asyncio.create_task(remote_task()),
+#        asyncio.create_task(remote_task()),
     ]
     await asyncio.gather(*tasks)
 
-asyncio.run(main())
+while True:
+    asyncio.run(main())
+    print('restarting')
