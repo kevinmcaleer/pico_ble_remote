@@ -1,8 +1,4 @@
-# June 2023
-# Bluetooth cores specification versio 5.4 (0x0D)
-# Bluetooth Remote Control
-# Kevin McAleer
-# KevsRobot.com
+# Server test
 
 import aioble
 import bluetooth
@@ -78,28 +74,22 @@ async def peripheral_task():
             except asyncio.TimeoutError:
                 print("Timeout discovering services/characteristics")
                 return
-            
+            count = 0
             while True:
+                if count > 10_000:
+                    count = 0
+                count += 1
+                
                 if control_characteristic == None:
                     print('no characteristic')
                     await asyncio.sleep_ms(10)
                     return
                 
                 if control_characteristic != None:
-#                     print("checking for button presses")
+#                     print("checking for data")
                     try:
                         command = await control_characteristic.read()
-                        if command != b'!':
-                            print(f"command was {command}")
-
-                        if command == b'a':
-                            print("a button pressed")
-                        elif command == b'b':
-                            print("b button pressed")
-                        elif command == b'x':
-                            print("x button pressed")
-                        elif command == b'y':
-                            print("y button pressed")
+                        print(command, count)
                         await asyncio.sleep_ms(1)
                         
                     except TypeError:

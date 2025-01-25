@@ -1,7 +1,4 @@
-# Kevin McAleer
-# 2023-06-28
-# Bluetooth cores specification versio 5.4 (0x0D)
-
+# Server Test
 import sys
 
 import aioble
@@ -9,7 +6,6 @@ import bluetooth
 import machine
 import uasyncio as asyncio
 from micropython import const
-from pimoroni import Button
 
 def uid():
     """ Return the unique id of the device as a string """
@@ -22,10 +18,7 @@ SERIAL_NUMBER_ID = const(0x2A25)
 HARDWARE_REVISION_ID = const(0x2A26)
 BLE_VERSION_ID = const(0x2A28)
 
-button_a = Button(0)
-button_b = Button(1)
-button_x = Button(2)
-button_y = Button(3)
+data = "Hello"
 
 led = machine.Pin("LED", machine.Pin.OUT)
 
@@ -69,24 +62,10 @@ async def remote_task():
             print('not connected')
             await asyncio.sleep_ms(1000)
             continue
-        if button_a.read():
-            print(f'Button A pressed, connection is: {connection}')
-            button_characteristic.write(b"a")   
-            button_characteristic.notify(connection,b"a")
-        elif button_b.read():
-            print('Button B pressed')
-            button_characteristic.write(b"b")
-            button_characteristic.notify(connection,b"b")
-        elif button_x.read():
-            print('Button X pressed')
-            button_characteristic.write(b"x")
-            button_characteristic.notify(connection,b"x")
-        elif button_y.read():
-            print('Button Y pressed')
-            button_characteristic.write(b"y")
-            button_characteristic.notify(connection,b"x")
-        else:
-            button_characteristic.write(b"!")
+        
+        button_characteristic.write(b"hello world")
+#         button_characteristic.notify(connection,b"x")
+        
         await asyncio.sleep_ms(10)
             
 # Serially wait for connections. Don't advertise while a central is
